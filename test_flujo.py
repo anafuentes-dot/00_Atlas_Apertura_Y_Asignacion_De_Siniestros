@@ -10,7 +10,7 @@ from busquedas.busqueda_santander import BusquedaSantander
 from busquedas.busqueda_inciso import BusquedaInciso
 from busquedas.busqueda_placas import BusquedaPlacas 
 
-def probar_flujo(criterio, tipo_asignacion):
+def probar_flujo(criterio, tipo_asignacion, causa_seleccionada):
     print("\n--- INICIANDO AUTOMATIZACIÓN E2E (PLAYWRIGHT) ---")
     
     with sync_playwright() as p:
@@ -27,26 +27,24 @@ def probar_flujo(criterio, tipo_asignacion):
             
             # 2. Login
             login_page.iniciar_sesion()
-            siniestro_page.completar_flujo_siniestro()
+
+            # 3. Completar el flujo de siniestro usando la causa seleccionada
+            siniestro_page.completar_flujo_siniestro(causa_test=causa_seleccionada)
             
             # 4. Seleccionar el menú en la UI
             siniestro_page.seleccionar_criterio_busqueda(criterio)
             
             # 5. Ejecutar la estrategia correspondiente
-            if criterio == "PLACAS":
-                estrategia = BusquedaPlacas(page)
-                estrategia.ejecutar()
-            elif criterio == "POLIZA":
-                estrategia = BusquedaPoliza(page)
-                estrategia.ejecutar()
-            elif criterio == "SERIE":
-                estrategia = BusquedaSerie(page)
-                estrategia.ejecutar()
-            elif criterio == "SANTANDER":
-                estrategia = BusquedaSantander(page)
-                estrategia.ejecutar()
-            elif criterio == "INCISO":
-                estrategia = BusquedaInciso(page)
+            estrategias = {
+                "PLACAS": BusquedaPlacas,
+                "POLIZA": BusquedaPoliza,
+                "SERIE": BusquedaSerie,
+                "SANTANDER": BusquedaSantander,
+                "INCISO": BusquedaInciso
+            }
+            
+            if criterio in estrategias:
+                estrategia = estrategias[criterio](page)
                 estrategia.ejecutar()
             
             # 6. Tabla y Popups
@@ -74,9 +72,21 @@ if __name__ == "__main__":
     if not criterio_usuario:
         criterio_usuario = "PLACAS"
 
+    print("\n--- TIPO DE CAUSA ---")
+    print("Opciones: COLISION, ROTURA_DE_CRISTAL, ROBO_TOTAL")
+    causa_usuario = input("Ingrese la causa del siniestro: ").strip().upper()
+    if not causa_usuario:
+        causa_usuario = "COLISION" 
+    acta_input = "N"
+    if causa_usuario == "ROBO_TOTAL":
+        acta_input = input("¿Cuenta con Acta de levantada? (S/N): ").strip().upper()
+    
+    tiene_acta = True if acta_input == "S" else False
+
     print("\n--- TIPO DE ASIGNACIÓN ---")
     print("1. Asignación Manual (Directa desde la tabla)")
     print("2. Asignación por Menú de Seguimiento")
     opcion_asignacion = input("Seleccione una opción (1 o 2): ").strip()
 
-    probar_flujo(criterio_usuario, opcion_asignacion)
+    # Llamada a la función con los 3 argumentos en orden correcto
+    probar_flujo(criterio_usuario, opcion_asignacion, causa_usuario)
