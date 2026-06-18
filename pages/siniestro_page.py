@@ -26,9 +26,9 @@ class SiniestroPage(BasePage):
        # --- SELECTORES: ROBO TOTAL 
         self.chk_acta = "label:has-text('¿Cuenta con Acta de levantada?')"
         self.input_averiguacion = "input[formcontrolname='numeroAveriguacion']"
-       #SELECTORES DE ROBO AUN NO TOMAN LOS DATOS
+       #SELECTORES DE ROBO AUN NO TOMAN LOS DATOS REVISION
         self.sel_tipo_robo = "mat-select[formcontrolname='tipo_robo']"
-        self.sel_pais = "mat-select[formcontrolname='id_pais']"
+        self.sel_pais = "//mat-select[@placeholder='País']"
         self.sel_estado = "mat-select[formcontrolname='id_estado']"
         self.sel_municipio = "mat-select[formcontrolname='id_municipio']"
         
@@ -81,9 +81,20 @@ class SiniestroPage(BasePage):
         # Playwright espera a que el elemento cumpla el estado 'hidden'
         self.page.locator(self.loader).wait_for(state="hidden")
 
-    def llenar_datos_reportante(self, nombre="Juan", paterno="Galindo", materno="Peres", telefono="5555555555", causa="COLISION", tiene_acta=True):
+    def llenar_datos_reportante(self, nombre="Juan", paterno="Galindo", materno="Peres", telefono="5555555555", causa="COLISION",tiene_acta=False):
         self.esperar_carga()
         print("Llenando datos del reportante...")
+        #evalucion de cuasa
+        #se agrego un if para validacion de robo
+        if causa.upper() == "ROBO_TOTAL":
+            print(f"Causa detectada: ROBO_TOTAL. Pasando acta={tiene_acta} al siguiente método.")
+        elif causa.upper() == "COLISION":
+        # Aquí pones lo que deba hacer si es colisión
+            print("Causa detectada: COLISION. Siguiendo flujo normal.")
+        
+        # 🚨 AQUÍ ESTÁ LA CONEXIÓN: Le heredamos el valor de tiene_acta
+            self.manejar_detalles_robo(tiene_acta=tiene_acta)
+
         
         # Agregamos .first para decirle a Playwright que tome el primero que encuentre (como hacía Selenium)
         self.page.locator(self.input_nombre).first.fill(nombre)
@@ -130,7 +141,7 @@ class SiniestroPage(BasePage):
             self.page.locator(f"//mat-option//span[contains(text(), '{texto_opcion2}')]").first.click(force=True)
             
             # ESPERA CRÍTICA: Esperamos a que la UI se actualice según la causa
-            self.page.wait_for_timeout(1500) 
+            #self.page.wait_for_timeout(150) 
 
             # 2. Lógica condicional según la causa elegida
             if causa.upper() == "ROTURA_DE_CRISTAL":
@@ -141,49 +152,61 @@ class SiniestroPage(BasePage):
                 # Integramos aquí la llamada al nuevo método
                 self.manejar_detalles_robo(tiene_acta=tiene_acta_usuario)
             
-            self.page.wait_for_timeout(1000)
+            #self.page.wait_for_timeout(1000)
             
         except Exception as e:
             print(f"Error seleccionando el criterio: {e}")
 
-    def manejar_detalles_robo(self, tiene_acta=True, num_averiguacion="123456"):
+    def manejar_detalles_robo(self, tiene_acta, num_averiguacion="123456"):
         print(f"🕵️ Configurando detalles de Robo (Acta: {tiene_acta})")
+
         try:
-            # Espera a que el formulario cargue tras elegir la causa
-            self.page.wait_for_timeout(2000) 
-            
-            label_acta = self.page.locator(self.chk_acta)
+
+            check_input = self.page.locator(self.chk_acta) 
+            check_input.wait_for(state="visible", timeout=5000)#espera
+
             input_ave = self.page.locator(self.input_averiguacion)
 
             if tiene_acta:
-                # Lógica del check de acta
-                if not input_ave.is_visible():
-                    label_acta.click(force=True)
-                    input_ave.wait_for(state="visible", timeout=5000)
-                input_ave.fill(num_averiguacion)
-            else:
-                if input_ave.is_visible():
-                    label_acta.click(force=True)
+                print("-> El usuario SÍ tiene acta. Activando el checkbox...")
+                check_input.set_checked(True)
 
-            # --- SECCIÓN DE SELECTORES ESTOS CAMPOS AUN NO LOS TOMA ---
+                #NUMERO DE AVERIGUACIÍN
+                input_ave.wait_for(state="visible", timeout=5000)
+                input_ave.fill(num_averiguacion)
+                print(f"-> Número de averiguación '{num_averiguacion}' ingresado.")
+            
+            else:
+                print("✅ El usuario NO tiene acta. Mantenemos el checkbox vacío de forma segura.")
+
+                print("-> Continuando con el flujo general de los demás datos de robo...")
+
+
             # Tipo de Robo REVISION
             print("⏳ Esperando campos de robo...")
+            #primer cambio
             
-            self.seleccionar_opcion_mat(self.sel_tipo_robo, "ESTACIONADO")
+            self.page.locator('//mat-select[@placeholder="Tipo robo"]').click()
+            self.page.locator("mat-option", has_text="Estacionado").click()
             
-            self.page.locator(self.sel_pais).wait_for(state="visible") 
+            #self.page.locator(self.sel_pais).wait_for(state="visible") 
 
             # País
-            self.seleccionar_opcion_mat(self.sel_pais, "MEXICO")
-            self.page.locator(self.sel_estado).wait_for(state="visible")
+            self.page.locator('//mat-select[@placeholder="País"]').click()
+            self.page.locator('//mat-select[@placeholder="País"]').focus()
+            self.page.locator("//mat-option[6]/span").click()
+            # Estado 
+
+            self.page.wait_for_timeout(1000) 
+            self.page.locator('//mat-select[@ng-reflect-name="cveEstadoRobo"]').click()
+            self.page.locator("//mat-option[19]/span").click()    
             
-            # Estado
-            self.seleccionar_opcion_mat(self.sel_estado, "ESTADO DE MEXICO")
-            self.page.locator(self.sel_municipio).wait_for(state="visible")
+            self.page.locator('//mat-select[@ng-reflect-name="cveMunicipioRobo"]').click()
+            self.page.locator("//mat-option[19]/span").click()
+        
             
             # Municipio (Pequeña espera porque esta lista depende de la elección del Estado)
-            self.page.wait_for_timeout(1000) 
-            self.seleccionar_opcion_mat(self.sel_municipio, "CHALCO")
+            
 
             print("✅ Todos los campos de Robo y Ubicación completados.")
 
@@ -249,7 +272,7 @@ class SiniestroPage(BasePage):
         self.page.locator(self.radio_group_7_no).click(force=True)
         
         #se agrego la causa y el acta
-    def completar_flujo_siniestro(self,causa_test="COLISION", tiene_acta=True):
+    def completar_flujo_siniestro(self,causa_test="COLISION", tiene_acta=False):
         """Método de conveniencia para ejecutar todo el flujo de esta página de una vez"""
         self.llenar_datos_reportante(causa=causa_test, tiene_acta=tiene_acta)
         self.llenar_datos_conductor()
@@ -304,12 +327,7 @@ class SiniestroPage(BasePage):
             else:
                 self.page.get_by_role("button", name="No").click()
             
-            # 3. Llenar el correo usando el formcontrolname de tu imagen
-            campo_email = self.page.locator("input[formcontrolname='cveCorreoCausa']")
-            campo_email.wait_for(state="visible")
-            campo_email.fill(correo)
-            print(f"✅ Correo '{correo}' ingresado correctamente.")
-            self.page.keyboard.press("Enter")
+        
             
             # 4. Cerrar el aviso (puedes usar Enter o buscar el botón 'Aceptar')
             self.page.locator(".swal2-container").wait_for(state="hidden")

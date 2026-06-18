@@ -5,18 +5,23 @@ class BusquedaPoliza(BusquedaEstrategia):
         super().__init__(page)
         self.selector_input_sucursal = "input[formcontrolname='p_sucursal']"
         self.selector_input_poliza = "input[formcontrolname='p_poliza_central']"
-        # 1. Definimos el selector del input de producto
-        self.selector_input_producto = "input[formcontrolname='p_producto']"
         self.selector_input_inciso = "input[formcontrolname='p_inciso']"
         self.selector_btn_buscar = "//button[contains(., 'Buscar')]"
         
     def ejecutar(self):
-        print(">> [Estrategia] Iniciando búsqueda por Póliza (Tradicional)...")
-        self.page.locator(self.selector_input_sucursal).fill("EA9")
-        self.page.locator(self.selector_input_poliza).fill("5612")
-        # 2. Llenamos el campo producto con "1" justo después de la póliza central
-        self.page.locator(self.selector_input_producto).fill("1")
-        self.page.locator(self.selector_input_inciso).fill("1")
+        print("--- Formulario de Búsqueda de Póliza ---")
+        
+        # INGRESO DE DATOS POR CONSOLA
+        sucursal = input("Ingrese la Sucursal: ")
+        poliza = input("Ingrese el número de Póliza: ")
+        inciso = input("Ingrese el Inciso: ")
+        
+        print(f"\n>> [Estrategia] Iniciando búsqueda con: Sucursal {sucursal}, Póliza {poliza}, Inciso {inciso}...")
+        
+        # LLENADO DE DATOS 
+        self.page.locator(self.selector_input_sucursal).fill(sucursal)
+        self.page.locator(self.selector_input_poliza).fill(poliza)
+        self.page.locator(self.selector_input_inciso).fill(inciso)
         
         print("Clic en botón Buscar...")
         self.page.locator(self.selector_btn_buscar).click(force=True)

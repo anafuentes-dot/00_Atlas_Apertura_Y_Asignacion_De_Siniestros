@@ -10,7 +10,7 @@ from busquedas.busqueda_santander import BusquedaSantander
 from busquedas.busqueda_inciso import BusquedaInciso
 from busquedas.busqueda_placas import BusquedaPlacas 
 
-def probar_flujo(criterio, tipo_asignacion, causa_seleccionada):
+def probar_flujo(criterio, tipo_asignacion, causa_seleccionada, acta_flujo):
     print("\n--- INICIANDO AUTOMATIZACIÓN E2E (PLAYWRIGHT) ---")
     
     with sync_playwright() as p:
@@ -29,7 +29,7 @@ def probar_flujo(criterio, tipo_asignacion, causa_seleccionada):
             login_page.iniciar_sesion()
 
             # 3. Completar el flujo de siniestro usando la causa seleccionada
-            siniestro_page.completar_flujo_siniestro(causa_test=causa_seleccionada)
+            siniestro_page.completar_flujo_siniestro(causa_test=causa_seleccionada, tiene_acta=acta_flujo)
             
             # 4. Seleccionar el menú en la UI
             siniestro_page.seleccionar_criterio_busqueda(criterio)
@@ -81,7 +81,10 @@ if __name__ == "__main__":
     if causa_usuario == "ROBO_TOTAL":
         acta_input = input("¿Cuenta con Acta de levantada? (S/N): ").strip().upper()
     
-    tiene_acta = True if acta_input == "S" else False
+    if acta_input == "S": 
+        tiene_acta = True  
+    else: 
+        tiene_acta = False
 
     print("\n--- TIPO DE ASIGNACIÓN ---")
     print("1. Asignación Manual (Directa desde la tabla)")
@@ -89,4 +92,4 @@ if __name__ == "__main__":
     opcion_asignacion = input("Seleccione una opción (1 o 2): ").strip()
 
     # Llamada a la función con los 3 argumentos en orden correcto
-    probar_flujo(criterio_usuario, opcion_asignacion, causa_usuario)
+    probar_flujo(criterio_usuario, opcion_asignacion, causa_usuario, tiene_acta)
